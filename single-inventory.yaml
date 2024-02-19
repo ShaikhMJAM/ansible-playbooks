@@ -1,0 +1,38 @@
+#Ansible Single Master Nodes Cluster Inventory file in INI_Format
+
+
+
+[k8s-master-sing-clus]
+
+[k8s-worker-sing-clus]
+
+[k8s-cluster:children]
+
+
+[k8s-master-single-clus]
+
+[k8s-worker-sing-clus]
+
+
+#Ansible Single Master Nodes Cluster Inventory file in YAML INI_Format
+---
+all:
+  children:
+    k8s-cluster:
+      children:
+        k8s-master-multi-clus:
+          hosts:
+            ansible_hosts: ip_address
+        k8s-single-multi-clus:
+          hosts:
+            ansible_hosts: ip_address
+        
+        
+
+            
+
+
+
+
+
+

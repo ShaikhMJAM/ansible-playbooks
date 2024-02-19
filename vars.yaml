@@ -1,0 +1,9 @@
+docker_version: "24.0.5"
+k8s: "1.28.1"
+kubernetes_version: "v1.28.1"
+
+ip_cpe: "10.150.17.36" # if single master node ip will be of master node or if multi master node ip will be of loadbalancer
+
+ip_aaa: "10.150.17.36" # same as above
+ip_pnc: "10.244.0.0/16"
+ip_sc: "10.96.0.0/16"

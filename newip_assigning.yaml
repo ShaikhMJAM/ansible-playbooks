@@ -1,0 +1,72 @@
+- name: Single master node set up
+  hosts: localhost
+  connection: local
+  vars_prompt:
+    - name: cluster_type
+      prompt: "Which type of cluster do you want to create? Enter 'single' for Single Master or 'multi' for Multi-Master:"
+      private: no
+
+    - name: num_workers
+      prompt: "How many worker nodes do you have?"
+      private: no
+      default: 1
+
+    - name: master_ip
+      prompt: "Enter the IP address of the master node"
+      private: no
+    - name: worker_ips
+      prompt: "Enter the IP addresses of the worker nodes (comma-separated)"
+      private: no
+      when: num_workers|int > 0
+
+  tasks:
+    - name: Display user choice
+      debug:
+        msg: "You selected {{ cluster_type }} master node cluster."
+
+    - name: Add master IP address to inventory file
+      ansible.builtin.debug:
+        msg: "Inserting master IP '{{ master_ip }}' after '[k8s_master_sing_clus]'"
+
+    - name: Read the contents of /etc/ansible/hosts
+
+      ansible.builtin.shell:
+        cmd: cat /etc/ansible/hosts
+      register: hosts_file_content
+
+    - name: Find the line with [k8s_master_sing_clus]
+      ansible.builtin.set_fact:
+        k8s_master_line: "{{ hosts_file_content.stdout_lines | select('match', '\\[k8s_master_sing_clus\\]') | first }}"
+
+    - name: Append master_ip to /etc/ansible/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/ansible/hosts
+        line: "{{ master_ip }}"
+        insertafter: "\\[k8s_master_sing_clus\\]"
+
+    - name: Add worker IP addresses to inventory file
+      ansible.builtin.debug:
+        msg: "Inserting worker IPs '{{ item }}' after '[k8s_worker_sing_clus]'"
+      loop: "{{ worker_ips.split(',') }}"
+      when: cluster_type == "single" and num_workers|int > 0
+
+    - name: Find the line with [k8s_worker_sing_clus]
+      ansible.builtin.set_fact:
+        k8s_worker_line: "{{ hosts_file_content.stdout_lines | select('match', '\\[k8s_worker_sing_clus\\]') | first }}"
+
+    - name: Append worker_ip to /etc/ansible/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/ansible/hosts
+        line: "{{ item }}"
+        insertafter: "\\[k8s_worker_sing_clus\\]"
+        state: present
+      loop: "{{ worker_ips.split(',') }}"
+      when: cluster_type == "single" and num_workers|int > 0
+      ignore_errors: true # Ignore errors if the line is already present
+
+- name: Ready to Deploy single master node cluster
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Run playbook to deploy single master node
+      ansible.builtin.command: ansible-playbook sing-master-node.yaml

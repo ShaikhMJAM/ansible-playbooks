@@ -1,0 +1,60 @@
+---
+- name: Reset Kubernetes Environment
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Confirmation prompt
+      ansible.builtin.pause:
+        prompt: "Are you sure you want to destroy the Kubernetes cluster? This action cannot be undone. (yes/no)"
+      register: confirmation
+
+    - name: Exit if not confirmed
+      ansible.builtin.fail:
+        msg: "Aborted playbook execution. Kubernetes cluster will not be destroyed."
+      when: confirmation.user_input != 'yes'
+
+- name: Reset Kubernetes Environment
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Delete Deployments and Resources from Kubernetes cluster
+      shell: |
+        kubectl delete deployments --all --all-namespaces
+        kubectl delete services --all --all-namespaces
+        kubectl delete pods --all --all-namespaces
+        kubectl delete configmaps --all --all-namespaces
+        kubectl delete --all --all-namespaces
+      become: yes
+
+    - name: Reset Kubernetes environment
+      shell: kubeadm reset -f
+      become: yes
+
+    - name: Remove all folders associated with Kubernetes, etcd, and Docker
+      shell: |
+        rm -rfv ~/.kube
+        rm -rfv /etc/cni /etc/kubernetes /var/lib/dockershim /var/lib/etcd /var/lib/kubelet /var/lib/etcd2/ /var/run/kubernetes ~/.kube/* /etc/systemd/system/etcd*
+      become: yes
+
+    - name: Remove Docker containers/images (optional if using Docker)
+      shell: |
+        docker image prune -a
+        docker ps -a | grep "k8s_" | awk '{print $1}' | xargs -r docker rm -f
+        systemctl restart docker
+      become: yes
+      ignore_errors: yes
+
+    - name: Reboot each node
+      shell: init 6
+      become: yes
+      ignore_errors: yes
+
+    - name: Remove all running Docker containers
+      shell: |
+        mkdir -p /etc/kubernetes /var/lib/kubelet/
+        mv -v /etc/containerd/config.toml /tmp/
+        systemctl restart containerd
+        systemctl restart docker
+        systemctl enable kubelet; systemctl stop kubelet
+      become: yes
+      ignore_errors: yes

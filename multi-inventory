@@ -1,0 +1,20 @@
+#Ansible Multi Master Nodes Cluster Inventory file in INI_Format
+
+[k8s-master1-multi-clus]
+
+
+[k8s-master-multi-clus]
+
+[k8s-worker-multi-clus]
+
+[k8s-cluster:children]
+
+[k8s-master1-multi-clus]
+
+[k8s-master-multi-clus]
+
+[k8s-worker-multi-clus]
+
+
+
+
